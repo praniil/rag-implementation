@@ -1,6 +1,5 @@
 import os
 import json
-from re import A
 from transformers import AutoTokenizer
 import uuid
 import regex as re
