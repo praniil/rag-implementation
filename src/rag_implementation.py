@@ -4,6 +4,7 @@ from transformers import AutoTokenizer, AutoModel
 import uuid
 import regex as re
 import torch
+import numpy as np
 
 def chunking(document_directory_path, tokenizer, chunk_size, paragraph_seperator = "\n\n", word_seperator= " "):
     documents = {}
@@ -81,6 +82,20 @@ def get_embedding(documents, tokenizer, model):
        chunk_embeddings_document[document_id] = chunk_embeddings_chunkinfo
     return chunk_embeddings_document
 
+def get_query_embedding(query, tokenizer, model):
+    tokenized_query = tokenizer(query, return_tensors = 'pt', padding=True, truncation = True)
+    embedding_query_tokens = model(**tokenized_query).last_hidden_state.mean(dim=1).squeeze().tolist()
+    return embedding_query_tokens
+
+def compute_cosine_similarity(chunk_embedding, query_embedding):
+    chunk_embedding_norm = chunk_embedding / np.linalg.norm(chunk_embedding) 
+    query_embedding_norm = query_embedding / np.linalg.norm(query_embedding)
+    if chunk_embedding_norm == 0 or query_embedding_norm == 0:
+        return 0
+    else:
+        return np.dot(chunk_embedding_norm, query_embedding_norm)
+
+
 def rag_implementation():
     document_directory_path = "../documents"
     model_name = "BAAI/bge-small-en-v1.5"
@@ -94,7 +109,13 @@ def rag_implementation():
     
     model = AutoModel.from_pretrained(model_name)
     chunk_embedding = get_embedding(documents, tokenizer, model)
-    print(chunk_embedding)
+    
+    query = "who won the election in Jhapa-5"
+    query_embedding = get_query_embedding(query, tokenizer, model)
+    print(len(query_embedding))
+    
+    similarity_score = compute_cosine_similarity(chunk_embedding, query_embedding)
+
 
 if __name__ == "__main__":
     rag_implementation()
