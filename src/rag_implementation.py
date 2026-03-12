@@ -1,8 +1,9 @@
 import os
 import json
-from transformers import AutoTokenizer
+from transformers import AutoTokenizer, AutoModel
 import uuid
 import regex as re
+import torch
 
 def chunking(document_directory_path, tokenizer, chunk_size, paragraph_seperator = "\n\n", word_seperator= " "):
     documents = {}
@@ -23,16 +24,13 @@ def chunking(document_directory_path, tokenizer, chunk_size, paragraph_seperator
             print(f"Error: Could not decode the file using utf-8. Try another encoding")
 
         document_unique_id = str(uuid.uuid4())
-        print(document_unique_id)
 
         file_chunks = {}
 
         paragraphs = re.split(pattern=paragraph_seperator, string=content)
-        print("length", len(paragraphs))
         
         for paragraph in paragraphs:
             words = paragraph.split(word_seperator)
-            print(words)
             
             current_word_list = []
             completed_chunk_text = ""
@@ -69,6 +67,19 @@ def chunking(document_directory_path, tokenizer, chunk_size, paragraph_seperator
 
     return documents
 
+def get_embedding(documents, tokenizer, model):
+    chunk_embeddings_document ={}
+    for document_id, chunks_info in documents.items():
+       chunk_embeddings_chunkinfo = {}
+       for chunk_id, chunk_text in chunks_info.items():
+           text = chunk_text.get("text")
+           tokenized_text = tokenizer(text, return_tensors='pt', padding= True, truncation= True)
+           with torch.no_grad():
+               embedding_text_tokens = model(**tokenized_text).last_hidden_state.mean(dim=1).squeeze().tolist()
+           
+           chunk_embeddings_chunkinfo[chunk_id] = embedding_text_tokens
+       chunk_embeddings_document[document_id] = chunk_embeddings_chunkinfo
+    return chunk_embeddings_document
 
 def rag_implementation():
     document_directory_path = "../documents"
@@ -80,7 +91,10 @@ def rag_implementation():
     documents = chunking(document_directory_path, tokenizer, chunk_size, paragraph_seperator, word_seperator)
     with open('../database/document_store.json', 'w', encoding= 'utf-8') as f:
         json.dump(documents, f, indent=4)
-
+    
+    model = AutoModel.from_pretrained(model_name)
+    chunk_embedding = get_embedding(documents, tokenizer, model)
+    print(chunk_embedding)
 
 if __name__ == "__main__":
     rag_implementation()
