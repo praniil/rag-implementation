@@ -1,12 +1,14 @@
 import os
 import json
-from transformers import AutoTokenizer, AutoModel
+from transformers import AutoTokenizer, AutoModel, logging as hf_logging
 import uuid
 import regex as re
 import torch
 import numpy as np
 from langchain_ollama import OllamaLLM
 from langchain_core.prompts import ChatPromptTemplate
+
+hf_logging.set_verbosity_error()
 
 def chunking(document_directory_path, tokenizer, chunk_size, paragraph_seperator = "\n\n", word_seperator= " "):
     documents = {}
@@ -174,6 +176,14 @@ def rag_implementation():
     llm = OllamaLLM(model="qwen2.5:latest")
 
     response = response_from_llm(query, retrieve_top_text, llm)
+    print("USER QUERY: ")
+    print(query)
+    retrieved_chunk_text = []
+    for retrieve_text in retrieve_top_text:
+        retrieved_chunk_text.append(retrieve_text["text"])
+    print("CONTEXT RETRIEVED FROM THE DATABSE: ")
+    print(retrieved_chunk_text)
+    print("RESPONSE FROM THE LLM: ")
     print(response)
 
 
