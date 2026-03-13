@@ -1,5 +1,7 @@
 import os
 import json
+import shutil
+import textwrap
 from transformers import AutoTokenizer, AutoModel, logging as hf_logging
 import uuid
 import regex as re
@@ -9,6 +11,52 @@ from langchain_ollama import OllamaLLM
 from langchain_core.prompts import ChatPromptTemplate
 
 hf_logging.set_verbosity_error()
+
+def get_console_width(max_width=100):
+    return min(shutil.get_terminal_size(fallback=(100, 20)).columns, max_width)
+
+def print_section_title(title):
+    width = get_console_width()
+    print("\n" + "═" * width)
+    print(title.center(width))
+    print("═" * width)
+
+def print_text_block(title, content, indent=2):
+    width = get_console_width()
+    wrapped_text = textwrap.fill(
+        str(content),
+        width=max(20, width - indent * 2),
+        initial_indent=" " * indent,
+        subsequent_indent=" " * indent
+    )
+    print(f"\n{title}")
+    print("─" * width)
+    print(wrapped_text)
+
+def print_context_blocks(context_items):
+    width = get_console_width()
+    print("\nRetrieved Context")
+    print("─" * width)
+
+    for index, item in enumerate(context_items, start=1):
+        metadata = item.get("metadata", {})
+        file_name = metadata.get("file_name", "unknown")
+        similarity = item.get("score")
+        score_text = f" | score: {similarity:.4f}" if similarity is not None else ""
+
+        print(f"\n[{index}] source: {file_name}{score_text}")
+        print(textwrap.fill(
+            item.get("text", ""),
+            width=max(20, width - 4),
+            initial_indent="  ",
+            subsequent_indent="  "
+        ))
+
+def display_results(query, retrieved_context, response):
+    print_section_title("RAG RESULT")
+    print_text_block("User Query", query)
+    print_context_blocks(retrieved_context)
+    print_text_block("LLM Response", response)
 
 def chunking(document_directory_path, tokenizer, chunk_size, paragraph_seperator = "\n\n", word_seperator= " "):
     documents = {}
@@ -121,7 +169,9 @@ def retrieve_text_top_ranks(top_similarity_results, document_data):
     for result in top_similarity_results:
         doc_id = result[0]
         chunk_id = result[1]
+        score = result[2]
         relevant_text = document_data[doc_id][chunk_id]
+        relevant_text["score"] = score
         relevant_texts.append(relevant_text)
 
     return relevant_texts
@@ -176,15 +226,7 @@ def rag_implementation():
     llm = OllamaLLM(model="qwen2.5:latest")
 
     response = response_from_llm(query, retrieve_top_text, llm)
-    print("USER QUERY: ")
-    print(query)
-    retrieved_chunk_text = []
-    for retrieve_text in retrieve_top_text:
-        retrieved_chunk_text.append(retrieve_text["text"])
-    print("CONTEXT RETRIEVED FROM THE DATABSE: ")
-    print(retrieved_chunk_text)
-    print("RESPONSE FROM THE LLM: ")
-    print(response)
+    display_results(query, retrieve_top_text, response)
 
 
 if __name__ == "__main__":
