@@ -114,6 +114,16 @@ def retrieve_top_results(top_similarity_scores):
         top_results.append(top_result)
     return top_results
 
+def retrieve_text_top_ranks(top_similarity_results, document_data):
+    relevant_texts = []
+    for result in top_similarity_results:
+        doc_id = result[0]
+        chunk_id = result[1]
+        relevant_text = document_data[doc_id][chunk_id]
+        relevant_texts.append(relevant_text)
+
+    return relevant_texts
+
 def rag_implementation():
     document_directory_path = "../documents"
     model_name = "BAAI/bge-small-en-v1.5"
@@ -133,8 +143,12 @@ def rag_implementation():
     query_embedding = get_query_embedding(query, tokenizer, model)
 
     top_similarity_scores = retrieve_top_scores(chunk_embedding, query_embedding, top_ranks)
-
     top_similarity_results = retrieve_top_results(top_similarity_scores)
+
+    with open('../database/document_store.json', 'r') as f:
+        document_data = json.load(f)
+
+    retrieve_top_text = retrieve_text_top_ranks(top_similarity_results, document_data)
 
 if __name__ == "__main__":
     rag_implementation()
