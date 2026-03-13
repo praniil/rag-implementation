@@ -124,6 +124,26 @@ def retrieve_text_top_ranks(top_similarity_results, document_data):
 
     return relevant_texts
 
+def response_from_llm(query, context, llm):
+    total_context = []
+    for item in context:
+        context = item["text"]
+        total_context.append(context)
+
+    template = """
+    You are an intelligent search engine. You will be provided with some retrieved context, as well as the users query.
+    Your job is to understand the request, and answer based on the retrieved context.
+    Here is context:
+    <context>
+    {context}
+    </context>
+    Question: {question}
+    """
+    prompt = ChatPromptTemplate.from_template(template= template) 
+    chain = prompt | llm
+    response = chain.invoke({"context": total_context[0], "question": query})
+    return response
+
 def rag_implementation():
     document_directory_path = "../documents"
     model_name = "BAAI/bge-small-en-v1.5"
@@ -149,6 +169,13 @@ def rag_implementation():
         document_data = json.load(f)
 
     retrieve_top_text = retrieve_text_top_ranks(top_similarity_results, document_data)
+
+    # llm initialization
+    llm = OllamaLLM(model="qwen2.5:latest")
+
+    response = response_from_llm(query, retrieve_top_text, llm)
+    print(response)
+
 
 if __name__ == "__main__":
     rag_implementation()
