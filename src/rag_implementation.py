@@ -107,6 +107,12 @@ def retrieve_top_scores(chunk_embedding, query_embedding, top_ranks):
     sorted_scores = sorted(scores.items(), key=lambda item: item[1], reverse = True)[:top_ranks]
     return sorted_scores
 
+def retrieve_top_results(top_similarity_scores):
+    top_results = []
+    for (document_id, chunk_id), scores in top_similarity_scores:
+        top_result = (document_id, chunk_id, scores)
+        top_results.append(top_result)
+    return top_results
 
 def rag_implementation():
     document_directory_path = "../documents"
@@ -127,6 +133,8 @@ def rag_implementation():
     query_embedding = get_query_embedding(query, tokenizer, model)
 
     top_similarity_scores = retrieve_top_scores(chunk_embedding, query_embedding, top_ranks)
+
+    top_similarity_results = retrieve_top_results(top_similarity_scores)
 
 if __name__ == "__main__":
     rag_implementation()
