@@ -5,6 +5,8 @@ import uuid
 import regex as re
 import torch
 import numpy as np
+from langchain_ollama import OllamaLLM
+from langchain_core.prompts import ChatPromptTemplate
 
 def chunking(document_directory_path, tokenizer, chunk_size, paragraph_seperator = "\n\n", word_seperator= " "):
     documents = {}
@@ -18,7 +20,6 @@ def chunking(document_directory_path, tokenizer, chunk_size, paragraph_seperator
             if os.path.isfile(file_path):
                 with open(file_path, 'r', encoding='utf-8') as file:
                     content = file.read()
-
         except FileNotFoundError:
             print(f"Error: the file at {file_path} was not found")
         except UnicodeDecodeError:
@@ -88,12 +89,13 @@ def get_query_embedding(query, tokenizer, model):
     return embedding_query_tokens
 
 def compute_cosine_similarity(chunk_embedding, query_embedding):
-    chunk_embedding_norm = chunk_embedding / np.linalg.norm(chunk_embedding) 
-    query_embedding_norm = query_embedding / np.linalg.norm(query_embedding)
+    chunk_embedding_norm = np.linalg.norm(chunk_embedding) 
+    query_embedding_norm = np.linalg.norm(query_embedding)
     if chunk_embedding_norm == 0 or query_embedding_norm == 0:
         return 0
     else:
-        return np.dot(chunk_embedding_norm, query_embedding_norm)
+        return np.dot(chunk_embedding/ chunk_embedding_norm, query_embedding/ query_embedding_norm)
+
 
 
 def rag_implementation():
@@ -101,6 +103,7 @@ def rag_implementation():
     model_name = "BAAI/bge-small-en-v1.5"
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     chunk_size = 200
+    top_ranks = 2
     paragraph_seperator = "\n\n"
     word_seperator = " " 
     documents = chunking(document_directory_path, tokenizer, chunk_size, paragraph_seperator, word_seperator)
@@ -110,12 +113,8 @@ def rag_implementation():
     model = AutoModel.from_pretrained(model_name)
     chunk_embedding = get_embedding(documents, tokenizer, model)
     
-    query = "who won the election in Jhapa-5"
+    query = "how many seats did rsp win?"
     query_embedding = get_query_embedding(query, tokenizer, model)
-    print(len(query_embedding))
-    
-    similarity_score = compute_cosine_similarity(chunk_embedding, query_embedding)
-
 
 if __name__ == "__main__":
     rag_implementation()
