@@ -96,6 +96,16 @@ def compute_cosine_similarity(chunk_embedding, query_embedding):
     else:
         return np.dot(chunk_embedding/ chunk_embedding_norm, query_embedding/ query_embedding_norm)
 
+def retrieve_top_scores(chunk_embedding, query_embedding, top_ranks):
+    scores = {}
+    for document_id, chunk_contents in chunk_embedding.items():
+        for chunk_id, chunk_info in chunk_contents.items():
+            embedding_chunk = np.array(chunk_info)
+            similarity_score = compute_cosine_similarity(embedding_chunk, query_embedding)
+            scores[(document_id, chunk_id)] = similarity_score
+
+    sorted_scores = sorted(scores.items(), key=lambda item: item[1], reverse = True)[:top_ranks]
+    return sorted_scores
 
 
 def rag_implementation():
@@ -115,6 +125,8 @@ def rag_implementation():
     
     query = "how many seats did rsp win?"
     query_embedding = get_query_embedding(query, tokenizer, model)
+
+    top_similarity_scores = retrieve_top_scores(chunk_embedding, query_embedding, top_ranks)
 
 if __name__ == "__main__":
     rag_implementation()
