@@ -207,11 +207,10 @@ query = "What would you like to know?"
 
 This project implements retrieval without a vector database.
 
-Given a chunk embedding $c$ and query embedding $q$, similarity is calculated using cosine similarity:
+Given a chunk embedding $c$ and query embedding $q$, cosine similarity is calculated as:
 
 $$
-\operatorname{similarity}(c,q) =
-\frac{c \cdot q}{\lVert c \rVert \lVert q \rVert}
+\frac{c \cdot q}{\|c\|_2 \|q\|_2}
 $$
 
 All chunks are scored and sorted in descending order. The highest-scoring chunks are then mapped back to their original text through their document and chunk UUIDs.
